@@ -1,6 +1,6 @@
 
 // const url = 'https://loginjwtmongo.herokuapp.com';
-const url = "http://localhost:7000";
+const url = "http://localhost:3000";
 
 
 
@@ -17,7 +17,7 @@ const signup = () => {
     };
 
     const Http = new XMLHttpRequest();
-    Http.open("POST", url + "/signup");
+    Http.open("POST", url + "/auth/signup");
     Http.setRequestHeader("Content-Type", "application/json");
     Http.send(JSON.stringify(obj));
 
@@ -54,7 +54,7 @@ const login = () => {
 
     const Http = new XMLHttpRequest();
 
-    Http.open("POST", url + "/login");
+    Http.open("POST", url + "/auth/login");
     Http.setRequestHeader("Content-Type", "application/json");
     Http.send(JSON.stringify(obj));
 
@@ -77,7 +77,23 @@ const login = () => {
     return false;
 }
 
+function getProfile(){
+    console.log("url=>",url);
+    axios({
+        method: 'get',
+        url: "http://localhost:3000/profile",
+        credentials: 'include',
+    }).then((response) => {
+        console.log("welcoming user==>",response);
 
+        // document.getElementById('welcomeUser').innerHTML = response.data.profile.name
+
+    }, (error) => {
+        console.log(error.message);
+        // location.href = "./login.html"
+    });
+
+}
 
 
 let logout = () => {

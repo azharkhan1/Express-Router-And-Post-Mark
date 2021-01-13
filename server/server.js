@@ -8,14 +8,13 @@ var express = require("express");
 var morgan = require("morgan");
 var bodyParser = require("body-parser");
 var cors = require("cors");
-var bcrypt = require("bcrypt-inzi")
 var jwt = require('jsonwebtoken'); // https://github.com/auth0/node-jsonwebtoken
-var mongoose = require("mongoose");
 var cookieParser = require("cookie-parser");
-var server = express();
 var path = require("path");
 var authRoutes = require("./routes/auth");
-
+var {SERVER_SECRET,PORT} = require("./core");
+var {userModel} = require("./derepo");
+var server = express();
 server.use(morgan("dev"));
 server.use(bodyParser.json());
 server.use(cors({
@@ -23,8 +22,10 @@ server.use(cors({
     credentials: true,
 }));
 server.use(cookieParser());
-var PORT = process.env.PORT || 7000;
-var SERVER_SECRET = process.env.SECRET || "12ka4";
+server.use("/",express.static(path.resolve(path.join(__dirname,"../public"))));
+
+
+
 
 server.get("/download", (req, res) => {
     console.log(__dirname);
@@ -33,7 +34,6 @@ server.get("/download", (req, res) => {
 
 server.use("/auth", authRoutes);
 
-server.use("/",express.static(path.resolve(path.join(__dirname,"public"))));
 
 
 
@@ -72,6 +72,22 @@ server.use(function (req, res, next) {
     });
 })
 
+server.get("/profile", (req, res, next) => {
+    userModel.findById(req.body.jToken.id, 'userName userEmail',
+        function (err, doc) {
+            if (!err) {
+
+                res.send({
+                    profile: doc
+                })
+            } else {
+                res.status(500).send({
+                    message: "server error"
+                })
+            }
+
+        })
+})
 
 
 

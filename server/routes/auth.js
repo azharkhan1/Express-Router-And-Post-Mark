@@ -1,6 +1,7 @@
 var express = require("express");
 var bcrypt = require("bcrypt-inzi");
 var jwt = require("jsonwebtoken");
+var {SERVER_SECRET} = require("../core");
 var {userModel} = require("../derepo");
 console.log("userModel:",userModel);
 
@@ -10,38 +11,6 @@ var api = express.Router();
 
 
 
-
-
-
-
-
-
-api.post("/logout",(req,res,next)=>{
-    res.cookie('jToken', "", {
-        maxAge: 86_400_000,
-        httpOnly: true
-    });
-
-    res.send("logout succesfully");
-
-})
-
-api.get("/profile", (req, res, next) => {
-    userModel.findById(req.body.jToken.id, 'userName userEmail',
-        function (err, doc) {
-            if (!err) {
-
-                res.send({
-                    profile: doc
-                })
-            } else {
-                res.status(500).send({
-                    message: "server error"
-                })
-            }
-
-        })
-})
 
 api.post("/signup", (req, res, next) => {
 
@@ -162,5 +131,15 @@ api.post("/login", (req, res, next) => {
     })
 })
 
+
+api.post("/logout",(req,res,next)=>{
+    res.cookie('jToken', "", {
+        maxAge: 86_400_000,
+        httpOnly: true
+    });
+
+    res.send("logout succesfully");
+
+})
 
 module.exports = api;
