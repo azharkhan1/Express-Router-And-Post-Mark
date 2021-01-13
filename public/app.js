@@ -86,25 +86,22 @@ function getProfile(){
     }).then((response) => {
         console.log("welcoming user==>",response);
 
-        // document.getElementById('welcomeUser').innerHTML = response.data.profile.name
+        document.getElementById('welcomeUser').innerHTML = response.data.profile.userName
 
     }, (error) => {
         console.log(error.message);
-        // location.href = "./login.html"
+        location.href = "./login.html"
     });
 
 }
 
-
 let logout = () => {
-    if (currentUser === null || currentUser === undefined) {
-        window.location.href = "index.html";
-    }
-    else {
-        currentUser = null;
-        localStorage.removeItem("currentUser");
+  
+    axios({
+        method : "post",
+        url : url+"/auth/logout",
+    }).then((response)=>{
+        alert(response.data);
         window.location.href = "login.html";
-    }
-
+    })
 }
-// DONE WITH IT
