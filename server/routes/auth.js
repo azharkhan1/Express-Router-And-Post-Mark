@@ -1,16 +1,16 @@
 var express = require("express");
 var bcrypt = require("bcrypt-inzi");
+var postmark = require("postmark");
 var jwt = require("jsonwebtoken");
-var {SERVER_SECRET} = require("../core");
-var {userModel} = require("../derepo");
-console.log("userModel:",userModel);
+var { SERVER_SECRET } = require("../core");
+var { userModel } = require("../derepo");
+var { otpModel } = require("../derepo");
+
 
 var api = express.Router();
 
 
-
-
-
+var client = new postmark.Client("Enter your own key");
 
 api.post("/signup", (req, res, next) => {
 
@@ -132,7 +132,7 @@ api.post("/login", (req, res, next) => {
 })
 
 
-api.post("/logout",(req,res,next)=>{
+api.post("/logout", (req, res, next) => {
     res.cookie('jToken', "", {
         maxAge: 86_400_000,
         httpOnly: true
@@ -142,4 +142,129 @@ api.post("/logout",(req,res,next)=>{
 
 })
 
+api.post("/forget-password", (req, res, next) => {
+
+    if (!req.body.userEmail) {
+
+        res.status(403).send(`
+            please send email in json body.
+            e.g:
+            {
+                "userEmail": "abc@gmail.com"
+            }`)
+        return;
+    }
+
+    userModel.findOne({ userEmail: req.body.userEmail },
+        function (err, user) {
+            if (err) {
+                res.status(500).send({
+                    message: "an error occured: " + JSON.stringify(err)
+                });
+            } else if (user) {
+                console.log("user==>", user);
+                const otp = Math.floor(getRandomArbitrary(11111, 99999))
+
+                otpModel.create({
+                    userEmail: req.body.userEmail,
+                    otp: otp
+                }).then((doc) => {
+                    console.log("user created=>> ", doc);
+                    client.sendEmail({
+                        "From": "mudassir_student@sysborg.com",
+                        "To": req.body.userEmail,
+                        "Subject": "Reset your password",
+                        "TextBody": `Here is your pasword reset code: ${otp}`
+                    }).then((status) => {
+
+                        console.log("status: ", status);
+                        res.status(200).send(
+                            {
+                                message: "email sent with otp"
+                            }
+                        )
+                    })
+                }).catch((err) => {
+                    console.log("error in creating otp: ", err);
+                    res.status(500).send({ message: "unexpected error " })
+                })
+            } else {
+                res.status(403).send({
+                    message: "user not found"
+                });
+            }
+        });
+})
+
+api.post("/forget-password-step-2", (req, res, next) => {
+
+    if (!req.body.userEmail || !req.body.otp || !req.body.newPassword) {
+        res.send(`
+        Please send email in JSON body
+        e.g:
+        "userEmail" : "abc@dummy.com"
+        "newPassword" : "123456"
+        "otp" : "xxxxx"
+    `)
+        return;
+    }
+    userModel.findOne({ userEmail: req.body.userEmail },
+        function (err, user) {
+            if (err) {
+                res.status(500).send({
+                    message: "an error occured: " + JSON.stringify(err)
+                });
+            } else if (user) {
+
+                otpModel.find({ userEmail: req.body.userEmail },
+                    function (err, otpData) {
+                        if (err) {
+                            res.status(500).send({
+                                message: "an error occured: " + JSON.stringify(err)
+                            });
+                        } else if (otpData) {
+                            console.log("otpData: ", otpData);
+                            otpData = otpData[otpData.length - 1]
+
+
+                            const now = new Date().getTime();
+                            const otpIat = new Date(otpData.createdOn).getTime(); // 2021-01-06T13:08:33.657+0000
+                            const diff = now - otpIat; // 300000 5 minute
+
+                            console.log("diff: ", diff);
+
+                            if (otpData.otp === req.body.otp && diff < 300000) { // correct otp code
+                                otpData.remove()
+
+                                bcrypt.stringToHash(req.body.newPassword).then(function (hash) {
+                                    user.update({ userPassword: hash }, {}, function (err, data) {
+                                        res.send("password updated");
+                                    })
+                                })
+
+                            } else {
+                                res.status(401).send({
+                                    message: "incorrect otp"
+                                });
+                            }
+                        } else {
+                            res.status(401).send({
+                                message: "incorrect otp"
+                            });
+                        }
+                    })
+
+            } else {
+                res.status(403).send({
+                    message: "user not found"
+                });
+            }
+        });
+});
+
+
 module.exports = api;
+
+function getRandomArbitrary(min, max) {
+    return Math.random() * (max - min) + min;
+} 

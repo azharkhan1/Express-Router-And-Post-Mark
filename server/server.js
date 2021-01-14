@@ -51,7 +51,7 @@ server.use(function (req, res, next) {
             const nowDate = new Date().getTime();
             const diff = nowDate - issueDate; // 86400,000
 
-            if (diff > 300000) { // expire after 5 min (in milis)
+            if (diff > 15000) { // expire after 5 min (in milis)
                 res.status(401).send("token expired")
             } else { // issue new token
                 var token = jwt.sign({
